@@ -10,7 +10,7 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
 
-    let itemArray = ["Find Mike","Bug Eggos","Destroy Demogorgan"]
+    var itemArray = [String]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -37,6 +37,31 @@ class TodoListViewController: UITableViewController {
         }
         
         tableView.deselectRow(at: indexPath, animated: true)
+    }
+    
+    @IBAction func addNewTodoButtonPressed(_ sender: Any) {
+        var textField = UITextField();
+        let alert = UIAlertController(title: "Add new todo item", message: "", preferredStyle: .alert)
+        let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
+            if (textField.text! != "") {
+                self.itemArray.append(textField.text!)
+                self.tableView.reloadData()
+            } else {
+                let emptyAlert = UIAlertController(title: "", message: "Todo cannot be empty.Please try again", preferredStyle: .alert)
+                emptyAlert.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.cancel, handler: { (alertAction) in
+                    emptyAlert.dismiss(animated: true, completion: nil)
+                }))
+                self.present(emptyAlert,animated: true,completion: nil)
+            }
+        }
+        alert.addTextField { (alertTextField) in
+            textField = alertTextField
+            alertTextField.placeholder = "Add a new Todo Item"
+            print(alertTextField.text)
+        }
+        alert.addAction(action)
+        
+        present(alert,animated: true,completion: nil)
     }
 }
 
