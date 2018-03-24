@@ -11,15 +11,22 @@ import UIKit
 class TodoListViewController: UITableViewController {
 
     var itemArray = [Item]()
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("items.plist")
     
-    let defaults = UserDefaults.standard
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // Do any additional setup after loading the view, typically from a nib.
-        if let items = defaults.array(forKey: "TodoListArray") as? [Item] {
-            itemArray = items
+//         Do any additional setup after loading the view, typically from a nib.
+        loadItems()
+    }
+    
+    func loadItems() {
+        if let data = try? Data(contentsOf: dataFilePath!) {
+            let decoder = PropertyListDecoder()
+            do {
+            itemArray = try decoder.decode([Item].self, from: data)
+            } catch {
+                print(error)
+            }
         }
     }
     
@@ -37,11 +44,23 @@ class TodoListViewController: UITableViewController {
         return itemArray.count
     }
     
+    fileprivate func saveDataToProperList() {
+        let encoder = PropertyListEncoder()
+        do {
+            let data = try encoder.encode(self.itemArray)
+            try data.write(to: self.dataFilePath!)
+        } catch {
+            print(error)
+        }
+    }
+    
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
     
         tableView.reloadData()
+        
+        saveDataToProperList()
         
         tableView.deselectRow(at: indexPath, animated: true)
     }
@@ -52,7 +71,7 @@ class TodoListViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             if (textField.text! != "") {
                 self.itemArray.append(Item(title: textField.text!, done: false))
-                self.defaults.set(self.itemArray, forKey: "TodoListArray")
+                self.saveDataToProperList()
                 self.tableView.reloadData()
             } else {
                 let emptyAlert = UIAlertController(title: "", message: "Todo cannot be empty.Please try again", preferredStyle: .alert)
