@@ -7,27 +7,28 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoListViewController: UITableViewController {
 
     var itemArray = [Item]()
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("items.plist")
+  
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
-//         Do any additional setup after loading the view, typically from a nib.
+        let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        print(dataFilePath)
         loadItems()
     }
     
-    func loadItems() {
-        if let data = try? Data(contentsOf: dataFilePath!) {
-            let decoder = PropertyListDecoder()
-            do {
-            itemArray = try decoder.decode([Item].self, from: data)
-            } catch {
-                print(error)
-            }
+    func loadItems(withPerformRequest:NSFetchRequest<Item> = Item.fetchRequest()){
+        do {
+           itemArray = try context.fetch(withPerformRequest)
+        } catch {
+            print(error)
         }
+        tableView.reloadData()
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -45,10 +46,8 @@ class TodoListViewController: UITableViewController {
     }
     
     fileprivate func saveDataToProperList() {
-        let encoder = PropertyListEncoder()
         do {
-            let data = try encoder.encode(self.itemArray)
-            try data.write(to: self.dataFilePath!)
+            try context.save()
         } catch {
             print(error)
         }
@@ -70,7 +69,10 @@ class TodoListViewController: UITableViewController {
         let alert = UIAlertController(title: "Add new todo item", message: "", preferredStyle: .alert)
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             if (textField.text! != "") {
-                self.itemArray.append(Item(title: textField.text!, done: false))
+                let newItem = Item(context: self.context )
+                newItem.done = false;
+                newItem.title = textField.text!
+                self.itemArray.append(newItem)
                 self.saveDataToProperList()
                 self.tableView.reloadData()
             } else {
@@ -88,6 +90,15 @@ class TodoListViewController: UITableViewController {
         alert.addAction(action)
         
         present(alert,animated: true,completion: nil)
+    }
+}
+
+extension TodoListViewController : UISearchBarDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let fetchRequest : NSFetchRequest<Item> = Item.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "title CONTAINS %@", searchBar.text!)
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        loadItems(withPerformRequest: fetchRequest)
     }
 }
 
